@@ -1,0 +1,17 @@
+name: "Progress Sync"
+guid: "c16569f5-02ed-4d6a-bbdb-649455e512d5"
+version: "1.0.0.0"
+targetAbi: "12.1.0.0"
+framework: "net10.0"
+owner: "lirem"
+overview: "Copy or keep watch progress in sync between users"
+description: >
+  Adds a "Sync progress" button to movie, series, season and episode pages in the web client.
+  Copy another user's resume position and watched state to your account once, or link a movie or
+  series to keep it in sync (follow or two-way). Requires the File Transformation plugin.
+category: "General"
+imageUrl: "https://raw.githubusercontent.com/lirem/jellyfin-plugin-progress-sync/main/logo.png"
+artifacts:
+  - "Jellyfin.Plugin.ProgressSync.dll"
+changelog: |-
+  Initial release.

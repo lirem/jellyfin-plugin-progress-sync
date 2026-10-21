@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Progress Sync</title>
+</head>
+<body>
+    <div id="progressSyncConfigPage" data-role="page" class="page type-interior pluginConfigurationPage">
+        <div data-role="content">
+            <div class="content-primary">
+                <h2 class="sectionTitle">Progress Sync</h2>
+                <p class="fieldDescription">
+                    Users copy or link watch progress from the "Sync progress" button on movie, series, season and episode pages.
+                    Links are managed by users in that dialog; this page is read-only.
+                </p>
+                <div id="psFtStatus" style="margin: 1em 0;"></div>
+                <h3 class="sectionTitle">Links</h3>
+                <table class="detailTable" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th class="detailTableHeaderCell">Item</th>
+                            <th class="detailTableHeaderCell">Creator</th>
+                            <th class="detailTableHeaderCell">Partner</th>
+                            <th class="detailTableHeaderCell">Mode</th>
+                            <th class="detailTableHeaderCell">Created</th>
+                        </tr>
+                    </thead>
+                    <tbody id="psLinks"></tbody>
+                </table>
+            </div>
+        </div>
+        <script type="text/javascript">
+            (function () {
+                var FT_REPO = 'https://www.iamparadox.dev/jellyfin/plugins/manifest.json';
+                var page = document.querySelector('#progressSyncConfigPage');
+
+                function cell(row, text) {
+                    var td = document.createElement('td');
+                    td.className = 'detailTableBodyCell';
+                    td.textContent = text;
+                    row.appendChild(td);
+                }
+
+                function renderStatus(overview) {
+                    var el = page.querySelector('#psFtStatus');
+                    el.innerHTML = '';
+                    var p = document.createElement('p');
+                    if (overview.FileTransformation === 'Registered') {
+                        p.textContent = 'Web client integration: active (File Transformation).';
+                    } else if (overview.FileTransformation === 'FileTransformationMissing') {
+                        p.textContent = 'Web client integration: inactive. Install and enable the File Transformation plugin '
+                            + '(repository ' + FT_REPO + '), then restart the server. Links keep working without it.';
+                        p.style.color = '#e0a030';
+                    } else {
+                        p.textContent = 'Web client integration: ' + overview.FileTransformation
+                            + (overview.Message ? ' (' + overview.Message + ')' : '') + '. Links keep working without it.';
+                        p.style.color = '#e0a030';
+                    }
+                    el.appendChild(p);
+                }
+
+                function renderLinks(links) {
+                    var body = page.querySelector('#psLinks');
+                    body.innerHTML = '';
+                    if (links.length === 0) {
+                        var empty = document.createElement('tr');
+                        cell(empty, 'No links.');
+                        body.appendChild(empty);
+                        return;
+                    }
+                    links.forEach(function (link) {
+                        var row = document.createElement('tr');
+                        row.className = 'detailTableBodyRow';
+                        cell(row, link.ItemName);
+                        cell(row, link.CreatorName);
+                        cell(row, link.PartnerName);
+                        cell(row, link.Mode === 'Mirror' ? 'Two-way' : 'Follow (partner to creator)');
+                        cell(row, new Date(link.CreatedUtc).toLocaleString());
+                        body.appendChild(row);
+                    });
+                }
+
+                page.addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getJSON(ApiClient.getUrl('ProgressSync/Admin/Overview')).then(function (overview) {
+                        renderStatus(overview);
+                        renderLinks(overview.Links);
+                    }, function (err) {
+                        page.querySelector('#psFtStatus').textContent = 'Could not load status (' + (err && err.status ? 'HTTP ' + err.status : 'network error') + ').';
+                    }).finally(function () {
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+            })();
+        </script>
+    </div>
+</body>
+</html>

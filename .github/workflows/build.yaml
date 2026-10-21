@@ -1,0 +1,18 @@
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**/*.md', 'docs/**']
+  pull_request:
+    branches: [main]
+    paths-ignore: ['**/*.md', 'docs/**']
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Shared Jellyfin plugin build (JPRM). Pinned to a commit of jellyfin-meta-plugins.
+    uses: jellyfin/jellyfin-meta-plugins/.github/workflows/build.yaml@5f6990aa467ae0a6b62c91ad0502e3e1a53117ce
+
+  test:
+    uses: jellyfin/jellyfin-meta-plugins/.github/workflows/test.yaml@5f6990aa467ae0a6b62c91ad0502e3e1a53117ce

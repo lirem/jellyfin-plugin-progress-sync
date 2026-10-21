@@ -1,0 +1,68 @@
+name: Release
+
+# Publishing a GitHub release tagged vX.Y.Z.W builds the plugin zip, attaches it to the release and
+# adds the version to manifest.json on main. The shared jellyfin-meta-plugins publish workflow only
+# deploys inside the jellyfin organisation, so third-party plugins need their own release job.
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out the release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+
+      - name: Install JPRM
+        # Same JPRM version as the shared Jellyfin build action (1.1.1 is not published on PyPI).
+        run: pip install "git+https://github.com/oddstr13/jellyfin-plugin-repository-manager@v1.1.1"
+
+      - name: Run tests
+        run: dotnet test -c Release
+
+      - name: Build plugin zip
+        run: |
+          VERSION="${TAG#v}"
+          mkdir -p artifacts
+          jprm --verbosity=debug plugin build . --output artifacts --version "$VERSION"
+          ls -la artifacts
+
+      - name: Attach zip to the release
+        run: gh release upload "$TAG" artifacts/*.zip --clobber
+
+      - name: Add version to manifest.json on main
+        run: |
+          ZIP="$(basename "$(ls artifacts/*.zip)")"
+          # JPRM rewrote project files while building; discard those changes before switching branches.
+          git checkout -- .
+          git fetch origin main
+          git checkout main
+          jprm repo add . "artifacts/$ZIP" --plugin-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ZIP}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json
+          git commit -m "Add ${TAG} to plugin manifest"
+          git pull --rebase origin main
+          git push origin main
