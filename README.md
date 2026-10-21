@@ -23,7 +23,8 @@ Favorites, ratings and audio/subtitle choices are left alone.
 
 ## Installation
 
-1. In Jellyfin, open **Dashboard → Plugins → Repositories** and add these repositories:
+1. In Jellyfin, open **Dashboard → Plugins → Manage Repositories** and add these two repositories
+   (the name is up to you):
 
    **File Transformation** (skip if you already have it installed)
 
@@ -38,7 +39,7 @@ Favorites, ratings and audio/subtitle choices are left alone.
    ```
 
 2. Install **File Transformation** and **Progress Sync** from the catalog.
-3. Restart Jellyfin, then reload the web client.
+3. Restart Jellyfin (**Dashboard → Restart**), then reload the web client.
 
 ## Usage
 
@@ -63,7 +64,7 @@ Links pass changes along. If Ann follows Ben and Ben has a two-way link with Cle
 reaches Ben and then Ann.
 
 Syncing runs on the server, so progress made in any Jellyfin app is synced. The button itself is
-only in the web client. Admins can see all links under **Dashboard → Plugins → Progress Sync**.
+only in the web client. Admins can see all links under **Dashboard → Plugins → Progress Sync → Settings**.
 
 ## Privacy
 
@@ -86,7 +87,7 @@ server log.
 
 ## Troubleshooting
 
-- **No sync button:** check **Dashboard → Plugins → Progress Sync**. If the web client integration
+- **No sync button:** check **Dashboard → Plugins → Progress Sync → Settings**. If the web client integration
   is inactive, install or enable File Transformation and restart Jellyfin. Then reload the browser
   once with Ctrl+Shift+R (Cmd+Shift+R on macOS).
 - **An action fails:** look for `Progress Sync` lines in the Jellyfin log and
