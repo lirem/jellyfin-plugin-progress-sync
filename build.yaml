@@ -15,4 +15,4 @@ imageUrl: "https://raw.githubusercontent.com/lirem/jellyfin-plugin-progress-sync
 artifacts:
   - "Jellyfin.Plugin.ProgressSync.dll"
 changelog: |-
-  Initial release.
+  Added collection sync: copy or keep in sync every movie and episode in a collection.
