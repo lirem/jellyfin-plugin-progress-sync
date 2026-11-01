@@ -8,9 +8,9 @@ Copy or sync watch progress between users on the same Jellyfin server.
 
 ![The Sync progress dialog on a series page](docs/images/dialog.png)
 
-Progress Sync adds a sync button to movie, series, season and episode pages in the Jellyfin web
-client. Use it to take over another user's progress once, or to link a title so your progress
-stays in step as you watch.
+Progress Sync adds a sync button to movie, series, season, episode and collection pages in the
+Jellyfin web client. Use it to take over another user's progress once, or to link a title or
+collection so your progress stays in step as you watch.
 
 Only watch progress is copied: resume position, watched state, play count and last played date.
 Favorites, ratings and audio/subtitle choices are left alone.
@@ -47,18 +47,24 @@ Open a title and click the sync button next to the other actions.
 
 **Copy once** replaces your progress with another user's:
 
-| Page    | What is copied                    |
-|---------|-----------------------------------|
-| Movie   | the movie, including all versions |
-| Episode | that episode                      |
-| Season  | the season's episodes             |
-| Series  | every episode                     |
+| Page       | What is copied                            |
+|------------|-------------------------------------------|
+| Movie      | the movie, including all versions         |
+| Episode    | that episode                              |
+| Season     | the season's episodes                     |
+| Series     | every episode                             |
+| Collection | every movie and episode in the collection |
 
-**Keep in sync** links the movie, or the whole series, with another user. It first copies their
-current progress to you.
+**Keep in sync** links the movie, the whole series, or the collection with another user. It first
+copies their current progress to you.
 
 - **Follow:** their progress is copied to you as they watch. Only you see this link.
 - **Two-way:** progress is copied both ways. You both see the link, and either of you can remove it.
+
+A collection link covers the movies, series, seasons and episodes in the collection, and follows
+it as it changes: titles added later sync from then on (their earlier progress is not copied), and
+removed titles stop syncing. Collections inside a collection are not included. Collection links are
+listed on the collection's page only.
 
 Links pass changes along. If Ann follows Ben and Ben has a two-way link with Cleo, Cleo's progress
 reaches Ben and then Ann.
@@ -83,7 +89,8 @@ server log.
 - The button relies on File Transformation modifying the web client, which Jellyfin does not
   officially support. A future web client update may break the button; existing links keep syncing.
 - If two linked users watch the same title at the same time, their positions overwrite each other.
-- A show split across two library folders syncs live only for the series the link was created on.
+- A show split across two library folders syncs live only for the series the link was created on,
+  or the one listed in the collection.
 
 ## Troubleshooting
 

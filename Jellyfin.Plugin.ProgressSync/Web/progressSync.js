@@ -9,7 +9,7 @@
     window.__progressSync = true;
 
     const LOG = '[ProgressSync]';
-    const SUPPORTED = new Set(['Movie', 'Episode', 'Season', 'Series']);
+    const SUPPORTED = new Set(['Movie', 'Episode', 'Season', 'Series', 'BoxSet']);
 
     // jellyfin-web registers custom elements through the webcomponents v0 polyfill, which upgrades
     // elements created from markup. document.createElement(tag, { is }) throws under that polyfill.
@@ -118,6 +118,8 @@
                 return { copy: 'this episode', link: 'the whole series' };
             case 'Season':
                 return { copy: 'this season\'s episodes', link: 'the whole series' };
+            case 'BoxSet':
+                return { copy: 'every movie and episode in this collection', link: 'this collection' };
             default:
                 return { copy: 'all episodes of this series', link: 'the whole series' };
         }

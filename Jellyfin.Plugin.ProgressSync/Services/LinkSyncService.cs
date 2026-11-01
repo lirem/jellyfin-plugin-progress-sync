@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data;
 using Jellyfin.Database.Implementations.Enums;
+using Jellyfin.Plugin.ProgressSync.Models;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -25,6 +27,7 @@ public sealed class LinkSyncService : IHostedService
     private readonly LinkStore _store;
     private readonly ProgressCopier _copier;
     private readonly ILogger<LinkSyncService> _logger;
+    private volatile CollectionRootsCache? _collectionRoots;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LinkSyncService"/> class.
@@ -81,7 +84,13 @@ public sealed class LinkSyncService : IHostedService
                 return;
             }
 
-            var links = _store.Snapshot.ForRoot(rootId);
+            var snapshot = _store.Snapshot;
+            if (snapshot.All.Count == 0)
+            {
+                return;
+            }
+
+            var links = LinksFor(snapshot, rootId, e.Item);
             if (links.Count == 0)
             {
                 return;
@@ -110,6 +119,48 @@ public sealed class LinkSyncService : IHostedService
         }
     }
 
+    private List<SyncLink> LinksFor(LinkSnapshot snapshot, Guid rootId, BaseItem item)
+    {
+        var links = new List<SyncLink>(snapshot.ForRoot(rootId));
+        try
+        {
+            // Membership is checked on every save, so items added to a linked collection sync from then on.
+            foreach (var collectionId in CollectionRoots(snapshot))
+            {
+                if (_libraryManager.GetItemById(collectionId) is BoxSet boxSet && LinkRules.IsInCollection(boxSet, item))
+                {
+                    links.AddRange(snapshot.ForRoot(collectionId));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // A failing collection lookup must not stop the item's own links.
+            _logger.LogError(ex, "Progress Sync: failed to check collections for item {ItemId}", item.Id);
+        }
+
+        return links;
+    }
+
+    private Guid[] CollectionRoots(LinkSnapshot snapshot)
+    {
+        // Worked out when the links change (once per snapshot) instead of looking up every root on each
+        // playback progress save. A root that could not be found then is rechecked after the next change.
+        var cached = _collectionRoots;
+        if (ReferenceEquals(cached?.Snapshot, snapshot))
+        {
+            return cached.Roots;
+        }
+
+        var roots = snapshot.All
+            .Select(l => l.RootItemId)
+            .Distinct()
+            .Where(id => _libraryManager.GetItemById(id) is BoxSet)
+            .ToArray();
+        _collectionRoots = new CollectionRootsCache(snapshot, roots);
+        return roots;
+    }
+
     private void Propagate(Guid targetUserId, UserDataSaveEventArgs e)
     {
         try
@@ -133,4 +184,6 @@ public sealed class LinkSyncService : IHostedService
             _logger.LogError(ex, "Progress Sync: failed to copy progress of item {ItemId} to user {UserId}", e.Item.Id, targetUserId);
         }
     }
+
+    private sealed record CollectionRootsCache(LinkSnapshot Snapshot, Guid[] Roots);
 }

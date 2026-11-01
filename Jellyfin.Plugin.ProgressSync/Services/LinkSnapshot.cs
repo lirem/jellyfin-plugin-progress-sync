@@ -33,7 +33,7 @@ public sealed class LinkSnapshot
     /// <summary>
     /// Gets the links attached to a root item.
     /// </summary>
-    /// <param name="rootItemId">The series or movie id.</param>
+    /// <param name="rootItemId">The series, movie or collection id.</param>
     /// <returns>The links; empty if none.</returns>
     public IReadOnlyList<SyncLink> ForRoot(Guid rootItemId) => _byRoot.TryGetValue(rootItemId, out var links) ? links : [];
 

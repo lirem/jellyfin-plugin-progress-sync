@@ -66,7 +66,7 @@ public sealed class ProgressSyncController : ControllerBase
     /// <summary>
     /// Copies another user's watch progress to the calling user, once.
     /// </summary>
-    /// <param name="itemId">A movie, episode, season or series.</param>
+    /// <param name="itemId">A movie, episode, season, series or collection.</param>
     /// <param name="sourceUserId">The user to copy from.</param>
     /// <response code="200">Progress copied.</response>
     /// <response code="400">Unsupported item type or copying from yourself.</response>
@@ -107,9 +107,9 @@ public sealed class ProgressSyncController : ControllerBase
     }
 
     /// <summary>
-    /// Lists the links on an item's series or movie that the calling user can see.
+    /// Lists the links on an item's series, movie or collection that the calling user can see.
     /// </summary>
-    /// <param name="itemId">A movie, episode, season or series.</param>
+    /// <param name="itemId">A movie, episode, season, series or collection.</param>
     /// <response code="200">Links returned.</response>
     /// <response code="400">Item cannot be linked.</response>
     /// <response code="403">The caller is not a user.</response>
@@ -148,10 +148,10 @@ public sealed class ProgressSyncController : ControllerBase
     }
 
     /// <summary>
-    /// Creates (or changes the mode of) a link on an item's series or movie, then copies the partner's
+    /// Creates (or changes the mode of) a link on an item's series, movie or collection, then copies the partner's
     /// progress to the calling user.
     /// </summary>
-    /// <param name="itemId">A movie, episode, season or series.</param>
+    /// <param name="itemId">A movie, episode, season, series or collection.</param>
     /// <param name="request">Partner and mode.</param>
     /// <response code="200">Link stored; see the initial copy fields for the copy outcome.</response>
     /// <response code="400">Invalid request.</response>
@@ -303,7 +303,7 @@ public sealed class ProgressSyncController : ControllerBase
         return new AdminOverviewDto(_injectionStatus.State, _injectionStatus.Message, links);
     }
 
-    private static bool IsSupported(BaseItem item) => item is Movie or Episode or Season or Series;
+    private static bool IsSupported(BaseItem item) => item is Movie or Episode or Season or Series or BoxSet;
 
     private User? GetCurrentUser()
     {

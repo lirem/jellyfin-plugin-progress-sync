@@ -86,4 +86,35 @@ public class LinkRulesTests
         Assert.Equal(primaryId, LinkRules.ResolveRoot(alternate));
         Assert.Null(LinkRules.ResolveRoot(new Folder { Id = Guid.NewGuid() }));
     }
+
+    [Fact]
+    public void ResolveRoot_Collection_IsTheCollection()
+    {
+        var boxSet = new BoxSet { Id = Guid.NewGuid() };
+
+        Assert.Equal(boxSet.Id, LinkRules.ResolveRoot(boxSet));
+    }
+
+    [Fact]
+    public void IsInCollection_MatchesItemPrimaryVersionSeasonOrSeries()
+    {
+        var movie = new Movie { Id = Guid.NewGuid() };
+        var alternate = new Movie { Id = Guid.NewGuid(), PrimaryVersionId = movie.Id };
+        var seriesId = Guid.NewGuid();
+        var seasonId = Guid.NewGuid();
+        var episode = new Episode { Id = Guid.NewGuid() };
+        var boxSet = new BoxSet
+        {
+            Id = Guid.NewGuid(),
+            LinkedChildren = [new LinkedChild { ItemId = movie.Id }, new LinkedChild { ItemId = seriesId }, new LinkedChild { ItemId = seasonId }, new LinkedChild { ItemId = episode.Id }]
+        };
+
+        Assert.True(LinkRules.IsInCollection(boxSet, movie));
+        Assert.True(LinkRules.IsInCollection(boxSet, alternate));
+        Assert.True(LinkRules.IsInCollection(boxSet, episode));
+        Assert.True(LinkRules.IsInCollection(boxSet, new Episode { Id = Guid.NewGuid(), SeriesId = seriesId }));
+        Assert.True(LinkRules.IsInCollection(boxSet, new Episode { Id = Guid.NewGuid(), SeasonId = seasonId, SeriesId = Guid.NewGuid() }));
+        Assert.False(LinkRules.IsInCollection(boxSet, new Movie { Id = Guid.NewGuid() }));
+        Assert.False(LinkRules.IsInCollection(boxSet, new Episode { Id = Guid.NewGuid(), SeasonId = Guid.NewGuid(), SeriesId = Guid.NewGuid() }));
+    }
 }

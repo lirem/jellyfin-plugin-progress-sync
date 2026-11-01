@@ -7,6 +7,7 @@ using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.ProgressSync.Models;
 using Jellyfin.Plugin.ProgressSync.Services;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -148,6 +149,88 @@ public sealed class LinkSyncServiceTests : IDisposable
         Watch(_alice, 100);
 
         Assert.Equal(100, Ticks(_carol));
+    }
+
+    [Fact]
+    public void CollectionLink_SyncsMoviesAndSeriesInTheCollection_Only()
+    {
+        var movie = _server.AddItem(new Movie { Id = Guid.NewGuid() });
+        var outside = _server.AddItem(new Movie { Id = Guid.NewGuid() });
+        var boxSet = _server.AddItem(new BoxSet
+        {
+            Id = Guid.NewGuid(),
+            LinkedChildren = [new LinkedChild { ItemId = movie.Id }, new LinkedChild { ItemId = _seriesId }]
+        });
+        _store.Upsert(_bob.Id, _alice.Id, boxSet.Id, LinkMode.Follow, _ => false);
+
+        Watch(_alice, 100);
+        Watch(_alice, 200, item: movie);
+        Watch(_alice, 300, item: outside);
+
+        Assert.Equal(100, Ticks(_bob));
+        Assert.Equal(200, _server.Get(_bob.Id, movie.Id).PlaybackPositionTicks);
+        Assert.Equal(0, _server.Get(_bob.Id, outside.Id).PlaybackPositionTicks);
+    }
+
+    [Fact]
+    public void CollectionLink_FollowsMembershipChanges()
+    {
+        var movie = _server.AddItem(new Movie { Id = Guid.NewGuid() });
+        var boxSet = _server.AddItem(new BoxSet { Id = Guid.NewGuid() });
+        _store.Upsert(_bob.Id, _alice.Id, boxSet.Id, LinkMode.Mirror, _ => false);
+
+        Watch(_alice, 100, item: movie);
+        Assert.Equal(0, SavesFor(_bob));
+
+        boxSet.LinkedChildren = [new LinkedChild { ItemId = movie.Id }];
+        Watch(_alice, 200, item: movie);
+        Assert.Equal(200, _server.Get(_bob.Id, movie.Id).PlaybackPositionTicks);
+
+        boxSet.LinkedChildren = [];
+        Watch(_alice, 300, item: movie);
+        Assert.Equal(200, _server.Get(_bob.Id, movie.Id).PlaybackPositionTicks);
+    }
+
+    [Fact]
+    public void CollectionLink_AddedAfterEarlierSaves_IsPickedUp()
+    {
+        var movie = _server.AddItem(new Movie { Id = Guid.NewGuid() });
+        var boxSet = _server.AddItem(new BoxSet { Id = Guid.NewGuid(), LinkedChildren = [new LinkedChild { ItemId = movie.Id }] });
+        Link(_carol, _alice, LinkMode.Follow);
+        Watch(_alice, 100, item: movie);
+
+        _store.Upsert(_bob.Id, _alice.Id, boxSet.Id, LinkMode.Follow, _ => false);
+        Watch(_alice, 200, item: movie);
+
+        Assert.Equal(200, _server.Get(_bob.Id, movie.Id).PlaybackPositionTicks);
+    }
+
+    [Fact]
+    public void FailingCollectionLookup_DoesNotStopTheItemsOwnLinks()
+    {
+        var boxSetId = Guid.NewGuid();
+        _server.Library.Setup(m => m.GetItemById(boxSetId)).Throws(new InvalidOperationException("simulated failure"));
+        _store.Upsert(_carol.Id, _alice.Id, boxSetId, LinkMode.Follow, _ => false);
+        Link(_bob, _alice, LinkMode.Follow);
+
+        Watch(_alice, 100);
+
+        Assert.Equal(100, Ticks(_bob));
+    }
+
+    [Fact]
+    public void Chain_AcrossCollectionAndSeriesLinks()
+    {
+        var boxSet = _server.AddItem(new BoxSet { Id = Guid.NewGuid(), LinkedChildren = [new LinkedChild { ItemId = _seriesId }] });
+        _store.Upsert(_alice.Id, _bob.Id, boxSet.Id, LinkMode.Mirror, _ => false);
+        Link(_bob, _carol, LinkMode.Mirror);
+
+        Watch(_alice, 100);
+        Assert.Equal(100, Ticks(_carol));
+
+        Watch(_carol, 200);
+        Assert.Equal(200, Ticks(_alice));
+        Assert.Equal(2, SavesFor(_bob));
     }
 
     [Fact]

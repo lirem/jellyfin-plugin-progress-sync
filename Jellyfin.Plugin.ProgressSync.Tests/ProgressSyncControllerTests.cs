@@ -139,6 +139,21 @@ public sealed class ProgressSyncControllerTests : IDisposable
     }
 
     [Fact]
+    public void Collection_CanBeCopiedAndLinked()
+    {
+        var boxSet = _server.AddItem(new BoxSet { Id = Guid.NewGuid(), Name = "Collection" });
+
+        Assert.NotNull(As(_bob).CopyFrom(boxSet.Id, _alice.Id).Value);
+
+        var result = As(_bob).CreateLink(boxSet.Id, new CreateLinkRequest(_alice.Id, LinkMode.Mirror));
+
+        Assert.NotNull(result.Value);
+        var link = Assert.Single(_store.Snapshot.All);
+        Assert.Equal(boxSet.Id, link.RootItemId);
+        Assert.Single(As(_alice).GetLinks(boxSet.Id).Value!);
+    }
+
+    [Fact]
     public void FollowLink_IsInvisibleAndNotRemovableForPartner()
     {
         var link = _store.Upsert(_bob.Id, _alice.Id, _series.Id, LinkMode.Follow, _ => false);

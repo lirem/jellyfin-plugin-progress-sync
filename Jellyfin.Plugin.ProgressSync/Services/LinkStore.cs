@@ -61,7 +61,7 @@ public sealed class LinkStore
     /// </summary>
     /// <param name="creatorUserId">The creating user.</param>
     /// <param name="partnerUserId">The partner user.</param>
-    /// <param name="rootItemId">The series or movie id.</param>
+    /// <param name="rootItemId">The series, movie or collection id.</param>
     /// <param name="mode">How progress flows.</param>
     /// <param name="isStale">Links to drop while writing (for example links of deleted users).</param>
     /// <returns>The stored link.</returns>

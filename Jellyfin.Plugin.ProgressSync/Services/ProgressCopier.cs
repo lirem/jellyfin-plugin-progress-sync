@@ -42,7 +42,7 @@ public sealed class ProgressCopier
     /// </summary>
     /// <param name="source">The user to copy from.</param>
     /// <param name="target">The user to copy to.</param>
-    /// <param name="opened">A movie, episode, season or series.</param>
+    /// <param name="opened">A movie, episode, season, series or collection.</param>
     /// <param name="reason">The save reason reported to the server.</param>
     /// <returns>The copy result.</returns>
     public CopyResult CopyScope(User source, User target, BaseItem opened, UserDataSaveReason reason)
@@ -71,13 +71,32 @@ public sealed class ProgressCopier
     /// <summary>
     /// Lists the playable items (all versions) under an opened item, enumerated as <paramref name="target"/>.
     /// </summary>
-    /// <param name="opened">A movie, episode, season or series.</param>
+    /// <param name="opened">A movie, episode, season, series or collection.</param>
     /// <param name="target">The user whose library view is used.</param>
     /// <returns>Distinct, non-virtual video items.</returns>
     /// <exception cref="ArgumentException">The item type is not supported.</exception>
     internal static IReadOnlyList<BaseItem> EnumerateLeaves(BaseItem opened, User target)
     {
         IEnumerable<Video> leaves = opened switch
+        {
+            // Only the movies, series, seasons and episodes in a collection; nested collections and
+            // other item types are left out. GetLinkedChildren(user) checks library access only, so
+            // parental rules are applied here.
+            BoxSet boxSet => boxSet.GetLinkedChildren(target)
+                .Where(c => c is Movie or Episode or Season or Series && c.IsVisible(target))
+                .SelectMany(c => VideosUnder(c, target)),
+            _ => VideosUnder(opened, target)
+        };
+
+        return leaves
+            .Where(v => !v.IsVirtualItem)
+            .DistinctBy(v => v.Id)
+            .ToList<BaseItem>();
+    }
+
+    private static IEnumerable<Video> VideosUnder(BaseItem item, User target)
+    {
+        return item switch
         {
             Movie movie => movie.GetAllVersions(),
             Episode episode => episode.GetAllVersions(),
@@ -87,13 +106,8 @@ public sealed class ProgressCopier
             Series series => series.GetEpisodes(target, new DtoOptions(true), false)
                 .OfType<Episode>()
                 .SelectMany(e => e.GetAllVersions()),
-            _ => throw new ArgumentException("Unsupported item type.", nameof(opened))
+            _ => throw new ArgumentException("Unsupported item type.", nameof(item))
         };
-
-        return leaves
-            .Where(v => !v.IsVirtualItem)
-            .DistinctBy(v => v.Id)
-            .ToList<BaseItem>();
     }
 
     /// <summary>

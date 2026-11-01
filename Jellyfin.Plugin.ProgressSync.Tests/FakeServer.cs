@@ -81,6 +81,7 @@ internal sealed class FakeServer
         Library
             .Setup(m => m.GetItemById<BaseItem>(item.Id, It.IsAny<User?>()))
             .Returns((Guid id, User? user) => user is not null && Hidden.Contains((user.Id, id)) ? null : instance);
+        Library.Setup(m => m.GetItemById(item.Id)).Returns(instance);
         return item;
     }
 

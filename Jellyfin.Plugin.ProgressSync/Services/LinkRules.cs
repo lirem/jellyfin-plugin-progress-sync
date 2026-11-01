@@ -36,7 +36,7 @@ internal static class LinkRules
     /// Users that receive a change made by <paramref name="from"/>. Follow links copy partner to
     /// creator; mirror links copy both ways. May contain duplicates.
     /// </summary>
-    /// <param name="links">Links on one root item.</param>
+    /// <param name="links">Links that cover the changed item.</param>
     /// <param name="from">The user whose progress changed.</param>
     /// <returns>Target user ids.</returns>
     public static IEnumerable<Guid> TargetsOf(IReadOnlyList<SyncLink> links, Guid from)
@@ -56,7 +56,7 @@ internal static class LinkRules
 
     /// <summary>
     /// The item a link is attached to: the series for episodes, seasons and series; the primary
-    /// version for movies.
+    /// version for movies; the collection itself for collections.
     /// </summary>
     /// <param name="item">Any item.</param>
     /// <returns>The root id, or <c>null</c> if the item cannot be linked.</returns>
@@ -68,8 +68,28 @@ internal static class LinkRules
             Season season => NonEmpty(season.SeriesId),
             Series series => series.Id,
             Movie movie => NonEmpty(movie.PrimaryVersionId) ?? movie.Id,
+            BoxSet boxSet => boxSet.Id,
             _ => null
         };
+    }
+
+    /// <summary>
+    /// Whether a saved movie or episode belongs to a collection: the collection lists the item, its
+    /// primary version, or (for episodes) its season or series.
+    /// </summary>
+    /// <param name="boxSet">The collection.</param>
+    /// <param name="item">The saved movie or episode.</param>
+    /// <returns><c>true</c> if the item is covered by the collection.</returns>
+    public static bool IsInCollection(BoxSet boxSet, BaseItem item)
+    {
+        if (boxSet.ContainsLinkedChildByItemId(item.Id)
+            || (item is Video { PrimaryVersionId: { } primaryId } && boxSet.ContainsLinkedChildByItemId(primaryId)))
+        {
+            return true;
+        }
+
+        return item is Episode episode
+            && (boxSet.ContainsLinkedChildByItemId(episode.SeasonId) || boxSet.ContainsLinkedChildByItemId(episode.SeriesId));
     }
 
     private static Guid? NonEmpty(Guid? id) => id is { } value && !value.Equals(Guid.Empty) ? value : null;
